@@ -5,6 +5,8 @@ AWG_IF=awg0
 AWG_DIR=/etc/amnezia/amneziawg
 AWG_CONF="${AWG_DIR}/${AWG_IF}.conf"
 
+CLIENTS_DIR="/root/amnezia/clients"
+
 [[ $EUID -eq 0 ]] || { echo "run as root: sudo $0 <name>" >&2; exit 1; }
 
 NAME=${1:-}
@@ -47,6 +49,15 @@ END {
 ' "$AWG_CONF" > "$TMP"
 
 mv "$TMP" "$AWG_CONF"
+
+# Чистим конфиг клиента, если есть
+CONF="${CLIENTS_DIR}/${NAME}.conf"
+if [[ -f "$CONF" ]]; then
+    rm -f "$CONF"
+    echo "[*] removed client config: $CONF"
+else
+    echo "[*] no client config file at $CONF (already removed?)"
+fi
 
 echo "[*] restarting ${AWG_IF}..."
 if systemctl list-unit-files | grep -q '^awg-quick@\.service'; then
