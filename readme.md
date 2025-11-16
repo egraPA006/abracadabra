@@ -1,5 +1,4 @@
-````markdown
-# Egor VPN stack (AmneziaWG + Xray/Reality)
+# Speedrun proxy
 
 Маленький набор скриптов для поднятия AmneziaWG и Xray/Reality.
 
