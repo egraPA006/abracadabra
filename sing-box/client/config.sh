@@ -19,7 +19,6 @@ fi
 mkdir -p "$SINGBOX_DIR"
 
 # ---- Парсим VLESS URL ----
-# ожидаем:
 # vless://UUID@HOST:PORT?encryption=...&flow=...&security=reality&pbk=...&sni=...&sid=...&fp=chrome#NAME
 
 u="${VLESS_URL#vless://}"   # срезаем схему
@@ -64,7 +63,7 @@ done
 : "${security:=reality}"
 : "${fingerprint:=chrome}"
 
-# ---- Общий кусок vless outbound для sing-box ----
+# ---- Общий VLESS outbound для sing-box ----
 vless_outbound=$(cat <<EOF
 {
   "type": "vless",
@@ -117,24 +116,24 @@ cat > "$SINGBOX_DIR/client-whitelist.json" <<EOF
     "auto_detect_interface": true,
     "rules": [
       // WHITELIST-START
-      { "outbound": "proxy", "domain": ["habr.com"] },
-      { "outbound": "proxy", "domain": ["voice.discord.gg"] },
-      { "outbound": "proxy", "domain": ["voice.discord.media"] },
-      { "outbound": "proxy", "domain": ["rtc.discord.com"] },
-      { "outbound": "proxy", "domain": ["discord-attachments-uploads-prd.storage.googleapis.com"] },
-      { "outbound": "proxy", "domain": ["discord.media"] },
-      { "outbound": "proxy", "domain": ["test.com"] },
-      { "outbound": "proxy", "domain": ["openai.com"] },
-      { "outbound": "proxy", "domain": ["chatgpt.com"] },
-      { "outbound": "proxy", "domain": ["discordcdn.com"] },
-      { "outbound": "proxy", "domain": ["discordapp.com"] },
-      { "outbound": "proxy", "domain": ["discord.gg"] },
-      { "outbound": "proxy", "domain": ["discord.com"] },
-      { "outbound": "proxy", "domain": ["ggpht.com"] },
-      { "outbound": "proxy", "domain": ["googlevideo.com"] },
-      { "outbound": "proxy", "domain": ["ytimg.com"] },
-      { "outbound": "proxy", "domain": ["youtu.be"] },
-      { "outbound": "proxy", "domain": ["youtube.com"] }
+      { "outbound": "proxy", "domain_suffix": ["habr.com"] },
+      { "outbound": "proxy", "domain_suffix": ["voice.discord.gg"] },
+      { "outbound": "proxy", "domain_suffix": ["voice.discord.media"] },
+      { "outbound": "proxy", "domain_suffix": ["rtc.discord.com"] },
+      { "outbound": "proxy", "domain_suffix": ["discord-attachments-uploads-prd.storage.googleapis.com"] },
+      { "outbound": "proxy", "domain_suffix": ["discord.media"] },
+      { "outbound": "proxy", "domain_suffix": ["test.com"] },
+      { "outbound": "proxy", "domain_suffix": ["openai.com"] },
+      { "outbound": "proxy", "domain_suffix": ["chatgpt.com"] },
+      { "outbound": "proxy", "domain_suffix": ["discordcdn.com"] },
+      { "outbound": "proxy", "domain_suffix": ["discordapp.com"] },
+      { "outbound": "proxy", "domain_suffix": ["discord.gg"] },
+      { "outbound": "proxy", "domain_suffix": ["discord.com"] },
+      { "outbound": "proxy", "domain_suffix": ["ggpht.com"] },
+      { "outbound": "proxy", "domain_suffix": ["googlevideo.com"] },
+      { "outbound": "proxy", "domain_suffix": ["ytimg.com"] },
+      { "outbound": "proxy", "domain_suffix": ["youtu.be"] },
+      { "outbound": "proxy", "domain_suffix": ["youtube.com"] }
       // WHITELIST-END
       ,
       {

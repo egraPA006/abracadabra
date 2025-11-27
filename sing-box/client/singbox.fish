@@ -1,4 +1,6 @@
 # Sing-box + Reality control (fish)
+# кладёшь в ~/.config/fish/conf.d/singbox.fish
+
 set -g SINGBOX_DIR "/usr/local/etc/sing-box"
 
 function singbox-on --description "start sing-box with mode: all|wl|tun"
@@ -9,20 +11,18 @@ function singbox-on --description "start sing-box with mode: all|wl|tun"
 
     switch "$mode"
         case all
-            # all: всё, что идёт через 127.0.0.1:10808, уходит в proxy,
-            # без TUN (нужно выставить системный/браузерный прокси)
+            # all: всё, что ходит через 127.0.0.1:10808, идёт в proxy, без TUN
             set cfg "$SINGBOX_DIR/client-all.json"
         case wl whitelist
-            # wl: через proxy только домены из whitelist,
-            # без TUN, остальное идёт напрямую
+            # wl: через proxy только домены из whitelist, без TUN
             set cfg "$SINGBOX_DIR/client-whitelist.json"
         case tun
-            # tun: VPN-режим, TUN+auto_route, весь системный трафик через proxy
+            # tun: VPN-режим, TUN+auto_route, весь системный трафик через proxy (кроме локалок)
             set cfg "$SINGBOX_DIR/client-tun.json"
         case '*'
             echo "Usage: singbox-on [all|wl|tun]"
-            echo "  all  - весь трафик через proxy (для apps на 127.0.0.1:10808), без TUN"
-            echo "  wl   - только белый список через proxy, без TUN"
+            echo "  all  - весь трафик (для приложений на 127.0.0.1:10808) через proxy, без TUN"
+            echo "  wl   - только whitelist-домены через proxy, без TUN"
             echo "  tun  - полноценный VPN (TUN, весь трафик системы через proxy)"
             return 1
     end
@@ -53,14 +53,13 @@ end
 
 function singbox-wl-list --description "list whitelist domains"
     set wl_config "$SINGBOX_DIR/client-whitelist.json"
-
     if not test -f "$wl_config"
         echo "No $wl_config found"
         return 1
     end
 
     sudo sed -n '/\/\/ WHITELIST-START/,/\/\/ WHITELIST-END/{
-        s/.*"domain:\([^"]*\)".*/\1/p
+        s/.*"domain_suffix":[[:space:]]*\["\([^"]*\)".*/\1/p
     }' "$wl_config"
 end
 
@@ -72,7 +71,6 @@ function singbox-wl-add --description "add domain to whitelist"
     end
 
     set wl_config "$SINGBOX_DIR/client-whitelist.json"
-
     if not test -f "$wl_config"
         echo "Whitelist config $wl_config not found"
         return 1
@@ -84,11 +82,10 @@ function singbox-wl-add --description "add domain to whitelist"
     end
 
     set tmp_file (mktemp)
-
     sudo awk -v dom="$domain" '
         /\/\/ WHITELIST-START/ {
             print
-            print "      { \"outbound\": \"proxy\", \"domain\": [\"domain:" dom "\"] },"
+            print "      { \"outbound\": \"proxy\", \"domain_suffix\": [\"" dom "\"] },"
             next
         }
         { print }
@@ -107,12 +104,11 @@ function singbox-wl-del --description "remove domain from whitelist"
     end
 
     set wl_config "$SINGBOX_DIR/client-whitelist.json"
-
     if not test -f "$wl_config"
         echo "Whitelist config $wl_config not found"
         return 1
     end
 
-    sudo sed -i "/\/\/ WHITELIST-START/,/\/\/ WHITELIST-END/ { /\"domain:$domain\"/d }" "$wl_config"
+    sudo sed -i "/\/\/ WHITELIST-START/,/\/\/ WHITELIST-END/ { /\"domain_suffix\":[[:space:]]*\[\"$domain\"/d }" "$wl_config"
     echo "Removed $domain from whitelist (if existed)"
 end
