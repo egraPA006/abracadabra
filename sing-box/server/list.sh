@@ -15,9 +15,19 @@ require_cmds jq numfmt
 stats_json='[]'
 stats_warning=""
 
-if raw_stats="$(api_get "/users/stats" 2>/dev/null || true)"; then
-  if [[ -n "$raw_stats" ]]; then
-    stats_json="$(printf '%s' "$raw_stats" | normalize_stats)"
+if sing_box_has_tag with_v2ray_api && command -v grpcurl >/dev/null 2>&1; then
+  if raw_stats="$(v2ray_stats_via_grpcurl 2>/dev/null || true)"; then
+    if [[ -n "$raw_stats" ]]; then
+      stats_json="$(printf '%s' "$raw_stats" | normalize_v2ray_stats)"
+    fi
+  fi
+fi
+
+if [[ "$stats_json" == "[]" ]]; then
+  if raw_stats="$(api_get "/users/stats" 2>/dev/null || true)"; then
+    if [[ -n "$raw_stats" ]]; then
+      stats_json="$(printf '%s' "$raw_stats" | normalize_stats)"
+    fi
   fi
 fi
 
@@ -30,7 +40,7 @@ if [[ "$stats_json" == "[]" ]]; then
 fi
 
 if [[ "$stats_json" == "[]" ]]; then
-  stats_warning="Clash API не вернул per-user статистику, показываю клиентов с нулевым трафиком."
+  stats_warning="Per-user статистика недоступна. Перезапусти ./install.sh, чтобы поставить sing-box с with_v2ray_api и grpcurl."
 fi
 
 report_json="$(jq -n \
