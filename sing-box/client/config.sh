@@ -33,8 +33,15 @@ fi
 # user_host_port = UUID@host:port
 id="${user_host_port%%@*}"
 host_port="${user_host_port#*@}"
-address="${host_port%%:*}"
-port="${host_port##*:}"
+
+if [[ "$host_port" == \[*\]:* ]]; then
+  address="${host_port%%]*}"
+  address="${address#[}"
+  port="${host_port##*:}"
+else
+  address="${host_port%:*}"
+  port="${host_port##*:}"
+fi
 
 encryption=""
 flow=""
@@ -226,7 +233,7 @@ cat > "$SINGBOX_DIR/client-tun.json" <<EOF
 }
 EOF
 
-sudo chmod 644 \
+chmod 644 \
   "$SINGBOX_DIR/client-whitelist.json" \
   "$SINGBOX_DIR/client-all.json" \
   "$SINGBOX_DIR/client-tun.json"

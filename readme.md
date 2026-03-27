@@ -1,6 +1,6 @@
 # Speedrun proxy
 
-Маленький набор скриптов для поднятия AmneziaWG и Xray/Reality.
+Маленький набор скриптов для поднятия AmneziaWG, Xray/Reality и sing-box/Reality.
 
 ## Структура
 
@@ -10,11 +10,15 @@
 - `xray/`
   - `server/` — скрипты для Xray/Reality сервера
   - `client/` — скрипты для Xray клиента (SOCKS/HTTP на 10808)
+- `sing-box/`
+  - `server/` — серверные скрипты для sing-box/Reality
+  - `client/` — клиентские скрипты для sing-box
 - `readme.md` — это
 
 ## Порты и прокся
 
 - `443/tcp` — Xray/Reality
+- `443/tcp` — sing-box/Reality сервер
 - `51820/udp` — AmneziaWG (AWG)
 - `10808/tcp` — локальный SOCKS/HTTP прокси клиента
 
@@ -67,4 +71,29 @@ cd ../client
 ./create_config.sh
 ```
 
-Дальше пользоваться скриптами по именам
+### 6. Если нужен именно sing-box
+
+Сервер:
+
+```bash
+cd sing-box/server
+SERVER_HOST=your.domain.or.ip ./install.sh
+./add.sh phone
+./get.sh phone
+```
+
+Клиент:
+
+```bash
+cd sing-box/client
+sudo ./install.sh
+./config.sh "vless://..."
+source ./singbox.sh
+singbox-on all
+```
+
+Подробные инструкции:
+
+- [sing-box/README.md](/home/egrapa/prog/abracadabra/sing-box/README.md)
+- [sing-box/server/README.md](/home/egrapa/prog/abracadabra/sing-box/server/README.md)
+- [sing-box/client/README.md](/home/egrapa/prog/abracadabra/sing-box/client/README.md)
