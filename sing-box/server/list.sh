@@ -69,7 +69,13 @@ table_output="$({
       (map(.total) | add | tostring)
     ] | @tsv
   ' <<<"$report_json"
-} | numfmt --field=2-4 --to=iec --suffix=B --format="%.2f")"
+} | {
+  # Read and print header first
+  IFS= read -r header
+  printf '%s\n' "$header"
+  # Process the rest with numfmt
+  numfmt --field=2-4 --to=iec --suffix=B --format="%.2f"
+})"
 
 if command -v column >/dev/null 2>&1; then
   printf '%s\n' "$table_output" | column -t -s $'\t'
