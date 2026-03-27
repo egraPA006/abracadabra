@@ -17,6 +17,7 @@ REALITY_HANDSHAKE_PORT="${REALITY_HANDSHAKE_PORT:-443}"
 INITIAL_CLIENT="${INITIAL_CLIENT:-}"
 V2RAY_API_LISTEN="${V2RAY_API_LISTEN:-127.0.0.1:10085}"
 GRPCURL_VERSION="${GRPCURL_VERSION:-1.9.3}"
+SING_BOX_VERSION="${SING_BOX_VERSION:-}"
 
 require_root
 require_cmds bash curl awk sed grep cut install systemctl tar uname mktemp
@@ -25,15 +26,48 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y ca-certificates curl jq uuid-runtime coreutils bsdextrautils
 
+install_sing_box_release() {
+  local version arch asset url tmp_dir
+
+  case "$(uname -m)" in
+    x86_64|amd64) arch="amd64" ;;
+    aarch64|arm64) arch="arm64" ;;
+    *)
+      echo "Неизвестная архитектура $(uname -m), sing-box установи вручную."
+      return 1
+      ;;
+  esac
+
+  version="$SING_BOX_VERSION"
+  if [[ -z "$version" ]]; then
+    version="$(curl -fsSL https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name')"
+  fi
+  version="${version#v}"
+
+  if [[ -z "$version" || "$version" == "null" ]]; then
+    echo "Не удалось определить версию sing-box из GitHub Releases."
+    return 1
+  fi
+
+  asset="sing-box-${version}-linux-${arch}.tar.gz"
+  url="https://github.com/SagerNet/sing-box/releases/download/v${version}/${asset}"
+  tmp_dir="$(mktemp -d)"
+
+  curl -fsSL "$url" -o "$tmp_dir/sing-box.tar.gz"
+  tar -xzf "$tmp_dir/sing-box.tar.gz" -C "$tmp_dir"
+  install -m 755 "$tmp_dir"/sing-box-*/sing-box /usr/local/bin/sing-box
+  rm -rf "$tmp_dir"
+}
+
 if ! command -v sing-box >/dev/null 2>&1 || ! sing_box_has_tag with_v2ray_api; then
-  curl -fsSL https://sing-box.app/install.sh | sh
+  install_sing_box_release
 fi
 
 require_cmds sing-box jq uuidgen numfmt
 
 if ! sing_box_has_tag with_v2ray_api; then
   echo "Текущий sing-box собран без with_v2ray_api."
-  echo "Нужен официальный билд sing-box с поддержкой V2Ray API."
+  echo "Укажи SING_BOX_VERSION или установи standalone-релиз с GitHub вручную."
   exit 1
 fi
 
