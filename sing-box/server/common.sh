@@ -7,7 +7,6 @@ STATE_PATH="${STATE_PATH:-$CONFIG_DIR/manager.json}"
 SERVICE_NAME="${SERVICE_NAME:-sing-box}"
 SCRIPT_INSTALL_DIR="${SCRIPT_INSTALL_DIR:-/usr/local/sbin}"
 LIB_INSTALL_DIR="${LIB_INSTALL_DIR:-/usr/local/lib/singbox-manager}"
-STATS_PROTO_PATH="${STATS_PROTO_PATH:-$LIB_INSTALL_DIR/xray-stats.proto}"
 
 require_root() {
   if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
@@ -101,15 +100,6 @@ render_config() {
           clash_api: {
             external_controller: $s.api_controller,
             secret: $s.api_secret
-          },
-          v2ray_api: {
-            listen: ($s.v2ray_api_listen // "127.0.0.1:10085"),
-            stats: {
-              enabled: true,
-              inbounds: ["vless-in"],
-              outbounds: ["direct", "block"],
-              users: ($s.clients | map(.name))
-            }
           }
         }
       }
@@ -157,39 +147,11 @@ api_secret() {
   jq -r '.api_secret' "$STATE_PATH"
 }
 
-v2ray_api_url() {
-  jq -r '.v2ray_api_listen // empty' "$STATE_PATH"
-}
-
 api_get() {
   local path="$1"
   curl -fsS --max-time 5 \
     -H "Authorization: Bearer $(api_secret)" \
     "http://$(api_url)$path"
-}
-
-sing_box_has_tag() {
-  local tag="$1"
-  command -v sing-box >/dev/null 2>&1 || return 1
-  sing-box version 2>/dev/null | grep -Eq "(^|[[:space:],])${tag}([[:space:],]|$)"
-}
-
-v2ray_stats_via_grpcurl() {
-  require_cmds grpcurl
-
-  local listen_addr="${1:-$(v2ray_api_url)}"
-  if [[ -z "$listen_addr" || "$listen_addr" == "null" ]]; then
-    return 1
-  fi
-
-  grpcurl \
-    -plaintext \
-    -max-time 5 \
-    -import-path "$(dirname "$STATS_PROTO_PATH")" \
-    -proto "$STATS_PROTO_PATH" \
-    -d '{"pattern":"user>>>","reset":false}' \
-    "$listen_addr" \
-    xray.app.stats.command.StatsService/QueryStats
 }
 
 format_vless_host() {
@@ -263,28 +225,5 @@ normalize_stats() {
         ) | to_number_or_zero
       })
     | map(select(.name != null and .name != ""))
-  '
-}
-
-normalize_v2ray_stats() {
-  jq -c '
-    (.stat // [])
-    | map(
-        (.name // "") as $raw_name
-        | ($raw_name | capture("^user>>>(?<name>.+)>>>traffic>>>(?<direction>uplink|downlink)$")?) as $match
-        | select($match != null)
-        | {
-            name: $match.name,
-            direction: $match.direction,
-            value: (.value | tonumber? // 0)
-          }
-      )
-    | sort_by(.name)
-    | group_by(.name)
-    | map({
-        name: .[0].name,
-        upload: (map(select(.direction == "uplink") | .value) | add // 0),
-        download: (map(select(.direction == "downlink") | .value) | add // 0)
-      })
   '
 }

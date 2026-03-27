@@ -10,92 +10,33 @@ fi
 
 require_root
 require_state
-require_cmds jq numfmt
+require_cmds jq
 
-stats_json='[]'
-stats_warning=""
-
-if sing_box_has_tag with_v2ray_api && command -v grpcurl >/dev/null 2>&1; then
-  if raw_stats="$(v2ray_stats_via_grpcurl 2>/dev/null || true)"; then
-    if [[ -n "$raw_stats" ]]; then
-      stats_json="$(printf '%s' "$raw_stats" | normalize_v2ray_stats)"
-    fi
-  fi
-fi
-
-if [[ "$stats_json" == "[]" ]]; then
-  if raw_stats="$(api_get "/users/stats" 2>/dev/null || true)"; then
-    if [[ -n "$raw_stats" ]]; then
-      stats_json="$(printf '%s' "$raw_stats" | normalize_stats)"
-    fi
-  fi
-fi
-
-if [[ "$stats_json" == "[]" ]]; then
-  if raw_stats="$(api_get "/users" 2>/dev/null || true)"; then
-    if [[ -n "$raw_stats" ]]; then
-      stats_json="$(printf '%s' "$raw_stats" | normalize_stats)"
-    fi
-  fi
-fi
-
-if [[ "$stats_json" == "[]" ]]; then
-  stats_warning="Per-user статистика недоступна. Перезапусти ./install.sh, чтобы поставить sing-box с with_v2ray_api и grpcurl."
-fi
-
-report_json="$(jq -n \
-  --slurpfile state "$STATE_PATH" \
-  --argjson stats "$stats_json" '
-  ($state[0].clients // [])
-  | map(
-      . as $client
-      | ([ $stats[] | select(.name == $client.name) ][0] // {}) as $stat
-      | {
-          name: $client.name,
-          upload: ($stat.upload // 0),
-          download: ($stat.download // 0),
-          total: (($stat.upload // 0) + ($stat.download // 0))
-        }
-    )
-  ' )"
+report_json="$(jq '
+  (.clients // [])
+  | map({
+      name: .name,
+      uuid: .uuid,
+      created_at: (.created_at // "")
+    })
+' "$STATE_PATH")"
 
 if [[ "$(jq 'length' <<<"$report_json")" -eq 0 ]]; then
   echo "Клиентов нет"
   exit 0
 fi
 
-tmp_tsv="$(mktemp)"
-jq -r '.[] | [.name, (.upload | tostring), (.download | tostring), (.total | tostring)] | @tsv' \
-  <<<"$report_json" >"$tmp_tsv"
+tmp_list="$(mktemp)"
+jq -r '.[] | [.name, .uuid, .created_at] | @tsv' <<<"$report_json" | {
+  printf 'NAME\tUUID\tCREATED\n'
+  cat
+} > "$tmp_list"
 
-table_output="$({
-  printf 'NAME\tUPLOAD\tDOWNLOAD\tTOTAL\n'
-  cat "$tmp_tsv"
-  jq -r '
-    [
-      "SUM",
-      (map(.upload) | add | tostring),
-      (map(.download) | add | tostring),
-      (map(.total) | add | tostring)
-    ] | @tsv
-  ' <<<"$report_json"
-} | {
-  # Read and print header first
-  IFS= read -r header
-  printf '%s\n' "$header"
-  # Process the rest with numfmt
-  numfmt --field=2-4 --to=iec --suffix=B --format="%.2f"
-})"
-
+table_output="$(cat "$tmp_list")"
 if command -v column >/dev/null 2>&1; then
   printf '%s\n' "$table_output" | column -t -s $'\t'
 else
   printf '%s\n' "$table_output"
 fi
 
-rm -f "$tmp_tsv"
-
-if [[ -n "$stats_warning" ]]; then
-  echo
-  echo "$stats_warning"
-fi
+rm -f "$tmp_list"

@@ -5,7 +5,6 @@
 ## Что умеет
 
 - ставит `sing-box`
-- ставит `grpcurl` для запроса `V2Ray API`
 - создаёт `systemd` сервис
 - генерирует `Reality` ключи
 - хранит клиентов в отдельном state-файле
@@ -130,7 +129,6 @@ singbox-add phone
   REALITY_SERVER_NAME=www.cloudflare.com \
   REALITY_HANDSHAKE_SERVER=www.cloudflare.com \
   REALITY_HANDSHAKE_PORT=443 \
-  V2RAY_API_LISTEN=127.0.0.1:10085 \
   ./install.sh
 ```
 
@@ -141,18 +139,13 @@ singbox-add phone
 - `REALITY_SERVER_NAME` - SNI для клиента
 - `REALITY_HANDSHAKE_SERVER` - куда маскируется Reality
 - `REALITY_HANDSHAKE_PORT` - порт сайта маскировки
-- `V2RAY_API_LISTEN` - локальный адрес `V2Ray API` для счётчиков
 - `INITIAL_CLIENT` - первый клиент, если нужен сразу
 
 ## Трафик в `list`
 
-Теперь схема сделана как в `xray`:
+`list.sh` просто показывает всех клиентов из state-файла.
 
-- сервер включает `experimental.v2ray_api`
-- для каждого клиента включается user traffic stats
-- `list.sh` читает эти счётчики через `grpcurl`
-
-Если на машине стоит проблемная сборка `sing-box` без `with_v2ray_api`, `install.sh` остановится с явной ошибкой.
+Без per-user трафика и без зависимости от API-ответов конкретной сборки `sing-box`.
 
 ## Минимальный рабочий сценарий
 
