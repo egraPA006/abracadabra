@@ -109,6 +109,12 @@ cat > "$SINGBOX_DIR/client-whitelist.json" <<EOF
       "tag": "local-in",
       "listen": "127.0.0.1",
       "listen_port": 10808
+    },
+    {
+      "type": "socks",
+      "tag": "socks-proxy-in",
+      "listen": "127.0.0.1",
+      "listen_port": 10809
     }
   ],
   "outbounds": [
@@ -122,6 +128,10 @@ cat > "$SINGBOX_DIR/client-whitelist.json" <<EOF
     "final": "direct",
     "auto_detect_interface": true,
     "rules": [
+      {
+        "inbound": "socks-proxy-in",
+        "outbound": "proxy"
+      },
       // WHITELIST-START
       { "outbound": "proxy", "domain_suffix": ["habr.com"] },
       { "outbound": "proxy", "domain_suffix": ["voice.discord.gg"] },
